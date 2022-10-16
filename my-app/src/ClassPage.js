@@ -4,12 +4,67 @@ import {
     GridItem,
     Box,
     IconButton,
-    Text 
+    Text, 
+    grid
 } from '@chakra-ui/react'
 import Navbar from './Navbar'
 import Sidebar from './Sidebar'
+import axios from 'axios';
+import { useEffect, useState } from 'react';
 
+let gridValuesInitial = []
+for (let i = 0; i < 120; i++) {
+  gridValuesInitial[i] = 0;
+}
 export default function ClassPage() {
+
+  const [gridValues, setGridValues] = useState(gridValuesInitial);
+
+  useEffect(() => {
+    function populateGrid(response) {
+      console.log(response)
+      let data = response.data
+      let tempGridValues = [...gridValues]
+      for (let i = 0; i < data.length; i++) {
+        let ohScheduleEntry = data[i]
+        let hms = ohScheduleEntry[4]
+        let target = new Date("1970-01-01T" + hms);
+        console.log("Hours:" ,target.getHours())
+        let hour = target.getHours()
+        let gridValuesIndexStart = (2*(hour - 8) * 5 ) + ohScheduleEntry[3]
+        hms = ohScheduleEntry[5]
+        target = new Date("1970-01-01T" + hms);
+        hour = target.getHours() + 1
+        let gridValuesIndexEnd = (2*(hour - 8) * 5 ) + ohScheduleEntry[3]
+        for (let j = gridValuesIndexStart; j < gridValuesIndexEnd; j = j + 5) {
+          tempGridValues[j] = 1
+        }
+        //populate actual oh coloring/use data
+      }
+      setGridValues(tempGridValues)
+      console.log('gridvalues', gridValues)
+    }
+    //Make a request for oh schedule given a class id
+    axios.get('http://127.0.0.1:5000/schedule/cs162')
+      .then(function (response) {
+        // handle success
+        console.log('getting a response')
+        populateGrid(response);
+      })
+      .catch(function (error) {
+        // handle error
+        console.log(error);
+      })
+      .then(function () {
+        // always executed
+      });
+  }, [])
+
+
+  
+
+  
+
     return (
         <Flex direction={'column'} w='100vw' h='100vh'>
             <Navbar/>
@@ -90,9 +145,13 @@ export default function ClassPage() {
                       </Text>
                     </Box>
                       {
-                        Array.from({length:120}).map((_, index) => (
-                          <Box w='100%' h='27px' bg='white.100' border='1px' borderColor='gray.200' key={index}/>
-                        ))
+                        Array.from({length:120}).map((_, index) => {
+                          if (gridValues[index] === 1) {
+                            return <Box w='100%' h='27px' bg='gray.200' border='1px' borderColor='gray.200' key={index}/>
+                          } else {
+                            return <Box w='100%' h='27px' bg='white.100' border='1px' borderColor='gray.200' key={index}/>
+                          }
+                      })
                       }
                   </Grid>
                  </Flex>
